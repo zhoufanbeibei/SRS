@@ -32,12 +32,12 @@ INSERT INTO `be_symptom` (`sName`, `sIcon`) VALUES
 ('腰背痛', '/fronted/icons/4.jpg'),
 ('关节痛', '/fronted/icons/5.jpg'),
 ('呼吸困难', '/fronted/icons/6.jpg'),
-('发热', '/fronted/icons/1.jpg'),
-('咳嗽', '/fronted/icons/2.jpg'),
-('恶心呕吐', '/fronted/icons/3.jpg'),
-('腹泻', '/fronted/icons/4.jpg'),
-('头晕', '/fronted/icons/5.jpg'),
-('关节肿胀', '/fronted/icons/6.jpg');
+('发热', '/fronted/icons/7.jpg'),
+('咳嗽', '/fronted/icons/8.jpg'),
+('恶心呕吐', '/fronted/icons/9.jpg'),
+('腹泻', '/fronted/icons/10.jpg'),
+('头晕', '/fronted/icons/11.jpg'),
+('关节肿胀', '/fronted/icons/12.jpg');
 
 -- 2. 子模块表（所有症状统一4个子模块）
 DROP TABLE IF EXISTS `be_submodule`;
