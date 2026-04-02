@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>内容详情 - 医学症状查询系统</title>
+    <!-- 本地CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+    <!-- 本地Popper.js + Bootstrap JS -->
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- 导航栏 -->
+      <nav id="nav-bar" class="navbar navbar-expand-lg navbar-light bg-white">
+        <div class="container">
+          <a class="navbar-brand" href="index.html">症状查询系统</a>
+          <div class="collapse navbar-collapse">
+            <div class="navbar-nav me-auto">
+              <a class="nav-link" href="index.html">首页</a>
+              <a class="nav-link" href="javascript:history.back()">症状详情</a>
+              <a class="nav-link active" href="javascript:;">内容展示</a>
+            </div>
+            <!-- 模式切换 + 导出按钮 -->
+            <div>
+              <button
+                class="btn btn-outline-primary mode-btn"
+                :class="{active: currentMode === 1}"
+                @click="switchMode(1)"
+              >
+                简略版
+              </button>
+              <button
+                class="btn btn-outline-primary mode-btn"
+                :class="{active: currentMode === 2}"
+                @click="switchMode(2)"
+              >
+                详细版
+              </button>
+              <button class="btn btn-success ms-2" @click="exportContent">
+                导出内容
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- 错误提示框 -->
+      <div id="error-alert" class="alert alert-danger" role="alert"></div>
+
+      <!-- 内容容器 -->
+      <div class="container mt-5">
+        <div class="content-container">
+          <h3 class="mb-4">{{ subModuleName }}</h3>
+          <div v-if="loading" class="text-center py-5">加载中...</div>
+          <div v-else class="content-text">{{ contentText }}</div>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/lib/vue.global.prod.js"></script>
+    <!-- Vue本地文件 -->
+    <script src="js/lib/axios.min.js"></script>
+    <!-- Axios本地文件 -->
+    <script src="js/components/utils.js"></script>
+    <script>
+      const { createApp } = Vue;
+      createApp({
+        data() {
+          return {
+            sId: "", // 症状ID
+            smId: "", // 小板块ID
+            currentMode: 1, // 当前模式（1=简略，2=详细）
+            contentText: "", // 内容文本
+            subModuleName: "", // 小板块名称
+            loading: false, // 加载状态
+          };
+        },
+        mounted() {
+          // 获取URL参数
+          this.sId = this.getUrlParam("sId");
+          this.smId = this.getUrlParam("smId");
+          this.currentMode = parseInt(this.getUrlParam("mId")) || 1;
+
+          // 参数验证
+          if (!this.sId || !this.smId) {
+            showError("参数缺失，无法加载内容", "E001");
+            return;
+          }
+
+          // 加载内容
+          this.loadContent();
+          // 获取小板块名称
+          this.getSubModuleName();
+          // 绑定快捷键
+          bindShortcuts();
+        },
+        methods: {
+          // 获取URL参数
+          getUrlParam(name) {
+            const reg = new RegExp(`(^|&)${name}=([^&]*)(&|$)`);
+            const r = window.location.search.substr(1).match(reg);
+            return r ? decodeURIComponent(r[2]) : "";
+          },
+          // 加载内容（调用后端接口）
+          async loadContent() {
+            this.loading = true;
+            try {
+              const res = await axios.post("../backend/api/content.php", {
+                action: "getContent",
+                sId: this.sId,
+                smId: this.smId,
+                mId: this.currentMode,
+              });
+              if (res.data.code === 200) {
+                this.contentText = res.data.data.contentText;
+              } else {
+                showError(res.data.msg, "E001");
+              }
+            } catch (err) {
+              showError("网络异常，内容加载失败", "E002");
+            } finally {
+              this.loading = false;
+            }
+          },
+          // 切换模式
+          async switchMode(modeId) {
+            this.currentMode = modeId;
+            // 保存模式偏好
+            window.localStorage.setItem("currentMode", modeId);
+            // 重新加载内容
+            this.loadContent();
+            // 调用模式切换日志接口（可选）
+            try {
+              await axios.post("../backend/api/mode.php", {
+                action: "switch",
+                mId: modeId,
+                deviceId: getDeviceId(),
+              });
+            } catch (err) {
+              console.log("模式切换日志记录失败:", err);
+            }
+          },
+          // 获取小板块名称
+          async getSubModuleName() {
+            try {
+              const res = await axios.get(
+                `../backend/api/symptom.php?action=getSubModuleName&smId=${this.smId}`
+              );
+              if (res.data.code === 200) {
+                this.subModuleName = res.data.data.smName;
+              }
+            } catch (err) {
+              console.log("获取小板块名称失败:", err);
+            }
+          },
+          // 导出内容
+          async exportContent() {
+            try {
+              const res = await axios.post(
+                "../backend/api/export.php",
+                {
+                  action: "export",
+                  sId: this.sId,
+                  smId: this.smId,
+                  mId: this.currentMode,
+                  format: "txt", // 支持txt/pdf，此处默认txt
+                },
+                {
+                  responseType: "blob", // 接收二进制文件
+                }
+              );
+
+              // 生成下载链接
+              const blob = new Blob([res.data], { type: "text/plain" });
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `${this.subModuleName}_${
+                this.currentMode === 1 ? "简略版" : "详细版"
+              }.txt`;
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+            } catch (err) {
+              showError("内容导出失败", "E002");
+            }
+          },
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>

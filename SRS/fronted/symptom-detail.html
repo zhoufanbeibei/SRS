@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>症状详情 - 医学症状查询系统</title>
+    <!-- 本地CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+    <!-- 本地Popper.js + Bootstrap JS -->
+
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- 导航栏 -->
+      <nav id="nav-bar" class="navbar navbar-expand-lg navbar-light bg-white">
+        <div class="container">
+          <a class="navbar-brand" href="index.html">症状查询系统</a>
+          <div class="collapse navbar-collapse">
+            <div class="navbar-nav me-auto">
+              <a class="nav-link" href="index.html">首页</a>
+              <a class="nav-link active" href="javascript:;">症状详情</a>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- 错误提示框 -->
+      <div id="error-alert" class="alert alert-danger" role="alert"></div>
+
+      <!-- 症状详情容器 -->
+      <div class="container mt-5">
+        <h2 class="mb-4">{{ symptomName }}</h2>
+        <div class="row g-4">
+          <!-- 小板块列表（对应ID:sub-mod-1~4） -->
+          <div
+            v-for="subModule in subModuleList"
+            :key="subModule.smId"
+            :id="`sub-mod-${subModule.smId}`"
+            class="col-md-3"
+          >
+            <div class="card sub-mod" @click="goToContent(subModule.smId)">
+              <div class="card-body">
+                <h5 class="card-title">{{ subModule.smName }}</h5>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/lib/vue.global.prod.js"></script>
+    <!-- Vue本地文件 -->
+    <script src="js/lib/axios.min.js"></script>
+    <!-- Axios本地文件 -->
+    <script src="js/components/utils.js"></script>
+    <script>
+      const { createApp } = Vue;
+      createApp({
+        data() {
+          return {
+            sId: "", // 当前症状ID
+            symptomName: "", // 症状名称
+            subModuleList: [], // 小板块列表
+          };
+        },
+        mounted() {
+          // 获取URL参数sId
+          this.sId = this.getUrlParam("sId");
+          if (!this.sId || !/^[1-9]$|^1[0-2]$/.test(this.sId)) {
+            showError("无效的症状ID", "E001");
+            return;
+          }
+          // 加载小板块数据
+          this.getSubModules();
+          // 绑定快捷键
+          bindShortcuts();
+        },
+        methods: {
+          // 获取URL参数
+          getUrlParam(name) {
+            const reg = new RegExp(`(^|&)${name}=([^&]*)(&|$)`);
+            const r = window.location.search.substr(1).match(reg);
+            return r ? decodeURIComponent(r[2]) : "";
+          },
+          // 获取小板块列表（调用后端接口）
+          async getSubModules() {
+            try {
+              const res = await axios.get(
+                `../backend/api/symptom.php?action=getSubModules&sId=${this.sId}`
+              );
+              if (res.data.code === 200) {
+                this.subModuleList = res.data.data.subModules;
+                this.symptomName = res.data.data.symptomName;
+              } else {
+                showError(res.data.msg, "E001");
+              }
+            } catch (err) {
+              showError("网络异常，无法加载板块数据", "E002");
+            }
+          },
+          // 跳转到内容页
+          goToContent(smId) {
+            const currentMode = getCurrentMode();
+            window.location.href = `content.html?sId=${this.sId}&smId=${smId}&mId=${currentMode}`;
+          },
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>

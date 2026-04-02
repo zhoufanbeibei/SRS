@@ -1,0 +1,64 @@
+/* 基础样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "PingFang SC", -apple-system, sans-serif;
+  background-color: #f8f9fa;
+}
+
+/* 导航栏样式（对应ID:nav-bar） */
+#nav-bar {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* 症状模块卡片（对应ID:symp-card-1~6） */
+.symp-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.symp-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* 小板块样式（对应ID:sub-mod-1~4） */
+.sub-mod {
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+
+/* 错误提示框（对应ID:error-alert） */
+#error-alert {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1050;
+  display: none;
+}
+
+/* 内容页样式 */
+.content-container {
+  min-height: 500px;
+  padding: 2rem;
+  background-color: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 模式切换按钮 */
+.mode-btn {
+  margin-left: 1rem;
+}

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>浏览历史 - 医学症状查询系统</title>
+    <!-- 本地CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+    <!-- 本地Popper.js + Bootstrap JS -->
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- 导航栏 -->
+      <nav id="nav-bar" class="navbar navbar-expand-lg navbar-light bg-white">
+        <div class="container">
+          <a class="navbar-brand" href="index.html">症状查询系统</a>
+          <div class="collapse navbar-collapse">
+            <div class="navbar-nav me-auto">
+              <a class="nav-link" href="index.html">首页</a>
+              <a class="nav-link active" href="javascript:;">浏览历史</a>
+            </div>
+            <button class="btn btn-danger" @click="clearHistory">
+              清空历史
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <!-- 错误提示框 -->
+      <div id="error-alert" class="alert alert-danger" role="alert"></div>
+
+      <!-- 历史记录容器 -->
+      <div class="container mt-5">
+        <div class="card">
+          <div class="card-header">
+            <h5>浏览记录（按时间倒序）</h5>
+          </div>
+          <div class="card-body">
+            <div
+              v-if="historyList.length === 0"
+              class="text-center py-5 text-muted"
+            >
+              暂无浏览记录
+            </div>
+            <table v-else class="table table-hover">
+              <thead>
+                <tr>
+                  <th>序号</th>
+                  <th>症状名称</th>
+                  <th>浏览时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in historyList" :key="item.recordId">
+                  <td>{{ index + 1 }}</td>
+                  <td>{{ item.sName }}</td>
+                  <td>{{ formatTime(item.browseTime) }}</td>
+                  <td>
+                    <button
+                      class="btn btn-sm btn-primary"
+                      @click="goToSymptom(item.sId)"
+                    >
+                      查看详情
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/lib/vue.global.prod.js"></script>
+    <!-- Vue本地文件 -->
+    <script src="js/lib/axios.min.js"></script>
+    <!-- Axios本地文件 -->
+    <script src="js/components/utils.js"></script>
+    <script>
+      const { createApp } = Vue;
+      createApp({
+        data() {
+          return {
+            historyList: [], // 浏览历史列表
+          };
+        },
+        mounted() {
+          // 加载浏览历史
+          this.loadHistory();
+          // 绑定快捷键
+          bindShortcuts();
+        },
+        methods: {
+          // 加载浏览历史（调用后端接口）
+          async loadHistory() {
+            try {
+              const res = await axios.post("../backend/api/history.php", {
+                action: "get",
+                deviceId: getDeviceId(),
+              });
+              if (res.data.code === 200) {
+                this.historyList = res.data.data;
+              } else {
+                showError(res.data.msg, "E001");
+              }
+            } catch (err) {
+              showError("历史记录加载失败", "E002");
+            }
+          },
+          // 格式化时间戳
+          formatTime(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleString("zh-CN", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            });
+          },
+          // 跳转到症状详情页
+          goToSymptom(sId) {
+            window.location.href = `symptom-detail.html?sId=${sId}`;
+          },
+          // 清空历史记录
+          async clearHistory() {
+            if (!confirm("确定要清空所有浏览历史吗？")) return;
+            try {
+              const res = await axios.post("../backend/api/history.php", {
+                action: "clear",
+                deviceId: getDeviceId(),
+              });
+              if (res.data.code === 200) {
+                this.historyList = [];
+                alert("历史记录已清空");
+              } else {
+                showError(res.data.msg, "E001");
+              }
+            } catch (err) {
+              showError("清空历史失败", "E002");
+            }
+          },
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>
