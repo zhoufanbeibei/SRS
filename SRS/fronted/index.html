@@ -1,69 +1,101 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>医学症状查询系统 - 首页</title>
-    <!-- Bootstrap 5 CSS -->
-    <!-- 本地CSS -->
-    <link href="css/bootstrap.min.css" rel="stylesheet" />
-    <!-- 本地Popper.js + Bootstrap JS -->
-    <script src="js/bootstrap.bundle.min.js"></script>
-    <!-- 自定义样式 -->
-    <link rel="stylesheet" href="css/style.css" />
-  </head>
-  <body>
-    <div id="app">
-      <!-- 导航栏（对应ID:nav-bar） -->
-      <nav id="nav-bar" class="navbar navbar-expand-lg navbar-light bg-white">
-        <div class="container">
-          <a class="navbar-brand" href="index.html">症状查询系统</a>
-          <div class="collapse navbar-collapse">
-            <div class="navbar-nav me-auto">
-              <a class="nav-link active" href="index.html">首页</a>
-              <a class="nav-link" href="javascript:;" @click="viewHistory"
-                >历史记录</a
-              >
-            </div>
-            <!-- 搜索框 -->
-            <div class="input-group w-25">
-              <input
-                type="text"
-                class="form-control"
-                v-model="searchKeyword"
-                placeholder="搜索症状..."
-              />
-              <button class="btn btn-primary" @click="searchSymptom">
-                搜索
-              </button>
-            </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>医学症状查询系统 - 首页</title>
+  <link href="css/bootstrap.min.css" rel="stylesheet" />
+  <script src="js/bootstrap.bundle.min.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* 核心修复：搜索框 上下左右绝对居中 + 放大 + LOGO空间 */
+    .center-wrapper {
+      /* 高度：全屏 - 导航栏高度，实现垂直居中 */
+      min-height: calc(100vh - 70px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+      padding: 0 20px;
+      /* 新增：顶部内边距，让标题远离顶端！ */
+      padding-top: 60px;
+    }
+    /* LOGO区域：顶部预留空间 */
+    .logo-area {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .logo-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: #0d6efd;
+      margin: 0;
+    }
+    /* 超大号搜索框 */
+    .huge-search {
+      width: 100%;
+      max-width: 800px; /* 搜索框最大宽度 */
+    }
+    .huge-search .form-control {
+      height: 60px;
+      font-size: 18px;
+      padding: 0 20px;
+    }
+    .huge-search .btn {
+      height: 60px;
+      font-size: 18px;
+      padding: 0 30px;
+    }
+    /* 症状卡片居下，不影响居中 */
+    .card-group-wrapper {
+      width: 100%;
+      max-width: 1200px;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- 导航栏 -->
+    <nav id="nav-bar" class="navbar navbar-expand-lg navbar-light bg-white">
+      <div class="container">
+        <a class="navbar-brand" href="index.html">症状查询系统</a>
+        <div class="collapse navbar-collapse">
+          <div class="navbar-nav me-auto">
+            <a class="nav-link active" href="index.html">首页</a>
+            <a class="nav-link" href="javascript:;" @click="viewHistory">历史记录</a>
           </div>
         </div>
-      </nav>
+      </div>
+    </nav>
 
-      <!-- 错误提示框（对应ID:error-alert） -->
-      <div id="error-alert" class="alert alert-danger" role="alert"></div>
+    <!-- 错误提示 -->
+    <div id="error-alert" class="alert alert-danger position-fixed top-20 start-50 translate-middle-x" style="display: none; z-index:999;"></div>
 
-      <!-- 症状模块容器 -->
-      <div class="container mt-5">
+    <!-- 核心：居中容器 + LOGO + 搜索框 -->
+    <div class="center-wrapper">
+      <!-- 顶部预留 LOGO/标题空间 -->
+      <div class="logo-area">
+        <h1 class="logo-title">医学症状智能查询</h1>
+        <p class="text-muted mt-2">专业、便捷、准确</p>
+      </div>
+
+      <!-- 超大号居中搜索框 -->
+      <div class="huge-search">
+        <div class="input-group">
+          <input type="text" class="form-control" v-model="searchKeyword" placeholder="请输入症状名称搜索...">
+          <button class="btn btn-primary" @click="searchSymptom">搜索</button>
+        </div>
+      </div>
+
+      <!-- 症状卡片（放在搜索框正下方，不破坏居中） -->
+      <div class="card-group-wrapper">
         <div class="row g-4">
-          <!-- 症状卡片（对应ID:symp-card-1~6） -->
-          <div
-            v-for="symptom in symptomList"
-            :key="symptom.sId"
-            :id="`symp-card-${symptom.sId}`"
-            class="col-md-4"
-          >
-            <div class="card symp-card" @click="goToSymptomDetail(symptom.sId)">
-              <div class="card-body text-center">
-                <!-- 正确写法 -->
-                <img
-                  :src="symptom.sIcon"
-                  alt="{{ symptom.sName }}"
-                  width="60"
-                  height="60"
-                  class="mb-3"
-                />
+          <div v-for="symptom in symptomList" :key="symptom.sId" class="col-md-4">
+            <div class="card symp-card text-center" @click="goToSymptomDetail(symptom.sId)">
+              <div class="card-body">
+                <img :src="symptom.sIcon" :alt="symptom.sName" width="60" height="60" class="mb-3">
                 <h5 class="card-title">{{ symptom.sName }}</h5>
               </div>
             </div>
@@ -71,89 +103,64 @@
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Vue 3 + Axios -->
-    <script src="js/lib/vue.global.prod.js"></script>
-    <!-- Vue本地文件 -->
-    <script src="js/lib/axios.min.js"></script>
-    <!-- Axios本地文件 -->
-    <script src="js/components/utils.js"></script>
-    <script>
-      const { createApp } = Vue;
-      createApp({
-        data() {
-          return {
-            symptomList: [], // 症状列表
-            searchKeyword: "", // 搜索关键词
-          };
+  <script src="js/lib/vue.global.prod.js"></script>
+  <script src="js/lib/axios.min.js"></script>
+  <script src="js/components/utils.js"></script>
+  <script>
+    const { createApp } = Vue;
+    createApp({
+      data() {
+        return {
+          symptomList: [],
+          searchKeyword: ""
+        };
+      },
+      mounted() {
+        this.getSymptomList();
+        bindShortcuts();
+      },
+      methods: {
+        async getSymptomList() {
+          try {
+            const res = await axios.get("../backend/api/symptom.php?action=getAll");
+            if (res.data.code === 200) this.symptomList = res.data.data;
+            else showError(res.data.msg, "E001");
+          } catch (err) {
+            showError("网络异常，无法加载症状数据", "E002");
+          }
         },
-        mounted() {
-          // 页面加载完成后获取所有症状
-          this.getSymptomList();
-          // 绑定快捷键（对应SRS 3.1节快捷键K2:Ctrl+F激活搜索框）
-          bindShortcuts();
+        goToSymptomDetail(sId) {
+          window.location.href = `symptom-detail.html?sId=${sId}`;
+          this.saveBrowseHistory(sId);
         },
-        methods: {
-          // 获取症状列表（调用后端接口）
-          async getSymptomList() {
-            try {
-              const res = await axios.get(
-                "../backend/api/symptom.php?action=getAll"
-              );
-              if (res.data.code === 200) {
-                this.symptomList = res.data.data;
-              } else {
-                showError(res.data.msg, "E001");
-              }
-            } catch (err) {
-              showError("网络异常，无法加载症状数据", "E002");
+        async searchSymptom() {
+          if (!this.searchKeyword.trim()) {
+            showError("请输入搜索关键词", "E001");
+            return;
+          }
+          try {
+            const res = await axios.get(`../backend/api/symptom.php?action=search&kw=${this.searchKeyword}`);
+            if (res.data.code === 200 && res.data.data.length > 0) {
+              this.goToSymptomDetail(res.data.data[0].sId);
+            } else {
+              showError("未找到匹配的症状", "E001");
             }
-          },
-          // 跳转到症状详情页
-          goToSymptomDetail(sId) {
-            window.location.href = `symptom-detail.html?sId=${sId}`;
-            // 保存浏览记录
-            this.saveBrowseHistory(sId);
-          },
-          // 搜索症状
-          async searchSymptom() {
-            if (!this.searchKeyword.trim()) {
-              showError("请输入搜索关键词", "E001");
-              return;
-            }
-            try {
-              const res = await axios.get(
-                `../backend/api/symptom.php?action=search&kw=${this.searchKeyword}`
-              );
-              if (res.data.code === 200 && res.data.data.length > 0) {
-                const sId = res.data.data[0].sId;
-                this.goToSymptomDetail(sId);
-              } else {
-                showError("无匹配症状", "E001");
-              }
-            } catch (err) {
-              showError("搜索失败，网络异常", "E002");
-            }
-          },
-          // 查看历史记录
-          viewHistory() {
-            window.location.href = "history.html";
-          },
-          // 保存浏览记录
-          async saveBrowseHistory(sId) {
-            const deviceId = getDeviceId(); // 工具函数获取设备ID
-            try {
-              await axios.post("../backend/api/history.php", {
-                action: "save",
-                sId: sId,
-                deviceId: deviceId,
-              });
-            } catch (err) {
-              console.log("历史记录保存失败:", err);
-            }
-          },
+          } catch (err) {
+            showError("搜索失败", "E002");
+          }
         },
-      }).mount("#app");
-    </script>
-  </body>
+        viewHistory() { window.location.href = "history.html"; },
+        async saveBrowseHistory(sId) {
+          try {
+            await axios.post("../backend/api/history.php", {
+              action: "save", sId: sId, deviceId: getDeviceId()
+            });
+          } catch (err) { console.log("记录保存失败"); }
+        }
+      }
+    }).mount("#app");
+  </script>
+</body>
 </html>

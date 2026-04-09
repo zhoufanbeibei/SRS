@@ -4,9 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>浏览历史 - 医学症状查询系统</title>
-    <!-- 本地CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet" />
-    <!-- 本地Popper.js + Bootstrap JS -->
     <script src="js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="css/style.css" />
   </head>
@@ -21,7 +19,7 @@
               <a class="nav-link" href="index.html">首页</a>
               <a class="nav-link active" href="javascript:;">浏览历史</a>
             </div>
-            <button class="btn btn-danger" @click="clearHistory">
+            <button class="btn btn-danger" @click="showClearConfirm" :disabled="loading">
               清空历史
             </button>
           </div>
@@ -31,71 +29,107 @@
       <!-- 错误提示框 -->
       <div id="error-alert" class="alert alert-danger" role="alert"></div>
 
+      <!-- 清空确认模态框 -->
+      <div class="modal fade" id="clearConfirmModal" tabindex="-1" aria-labelledby="clearConfirmLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="clearConfirmLabel">确认清空</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              确定要清空所有浏览历史吗？此操作不可恢复。
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+              <button type="button" class="btn btn-danger" @click="confirmClearHistory">确认清空</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 历史记录容器 -->
       <div class="container mt-5">
         <div class="card">
-          <div class="card-header">
-            <h5>浏览记录（按时间倒序）</h5>
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">浏览记录（按时间倒序）</h5>
+            <span class="text-muted small">共 {{ historyList.length }} 条记录</span>
           </div>
           <div class="card-body">
-            <div
-              v-if="historyList.length === 0"
-              class="text-center py-5 text-muted"
-            >
-              暂无浏览记录
+            <!-- 加载状态 -->
+            <div v-if="loading" class="loading-container">
+              <div class="loading-spinner"></div>
+              <div>加载历史记录中...</div>
             </div>
-            <table v-else class="table table-hover">
-              <thead>
-                <tr>
-                  <th>序号</th>
-                  <th>症状名称</th>
-                  <th>浏览时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, index) in historyList" :key="item.recordId">
-                  <td>{{ index + 1 }}</td>
-                  <td>{{ item.sName }}</td>
-                  <td>{{ formatTime(item.browseTime) }}</td>
-                  <td>
-                    <button
-                      class="btn btn-sm btn-primary"
-                      @click="goToSymptom(item.sId)"
-                    >
-                      查看详情
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            
+            <!-- 空状态 -->
+            <div v-else-if="historyList.length === 0" class="text-center py-5 text-muted">
+              <div class="mb-3">📜</div>
+              <div>暂无浏览记录</div>
+              <div class="mt-2">
+                <a href="index.html" class="btn btn-outline-primary btn-sm">去首页查询症状</a>
+              </div>
+            </div>
+            
+            <!-- 历史表格 -->
+            <div v-else class="table-responsive">
+              <table class="table table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>序号</th>
+                    <th>症状名称</th>
+                    <th>浏览时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, index) in historyList" :key="item.recordId">
+                    <td>{{ index + 1 }}</td>
+                    <td>{{ item.sName }}</td>
+                    <td>{{ formatTime(item.browseTime) }}</td>
+                    <td>
+                      <button
+                        class="btn btn-sm btn-primary"
+                        @click="goToSymptom(item.sId)"
+                      >
+                        查看详情
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+      </div>
+
+      <!-- 快捷键提示 -->
+      <div class="shortcut-tip">
+        快捷键：Ctrl+H 清空历史 | Ctrl+R 刷新记录
       </div>
     </div>
 
     <script src="js/lib/vue.global.prod.js"></script>
-    <!-- Vue本地文件 -->
     <script src="js/lib/axios.min.js"></script>
-    <!-- Axios本地文件 -->
     <script src="js/components/utils.js"></script>
     <script>
       const { createApp } = Vue;
       createApp({
         data() {
           return {
-            historyList: [], // 浏览历史列表
+            historyList: [],
+            loading: false,
+            clearLoading: false // 清空加载状态
           };
         },
         mounted() {
-          // 加载浏览历史
           this.loadHistory();
-          // 绑定快捷键
           bindShortcuts();
         },
         methods: {
-          // 加载浏览历史（调用后端接口）
+          // 加载浏览历史
           async loadHistory() {
+            this.loading = true;
             try {
               const res = await axios.post("../backend/api/history.php", {
                 action: "get",
@@ -108,6 +142,8 @@
               }
             } catch (err) {
               showError("历史记录加载失败", "E002");
+            } finally {
+              this.loading = false;
             }
           },
           // 格式化时间戳
@@ -126,9 +162,19 @@
           goToSymptom(sId) {
             window.location.href = `symptom-detail.html?sId=${sId}`;
           },
-          // 清空历史记录
-          async clearHistory() {
-            if (!confirm("确定要清空所有浏览历史吗？")) return;
+          // 显示清空确认模态框
+          showClearConfirm() {
+            if (this.historyList.length === 0) {
+              showError("暂无历史记录可清空", "E001");
+              return;
+            }
+            const modal = new bootstrap.Modal(document.getElementById('clearConfirmModal'));
+            modal.show();
+          },
+          // 确认清空历史
+          async confirmClearHistory() {
+            this.clearLoading = true;
+            const modal = bootstrap.Modal.getInstance(document.getElementById('clearConfirmModal'));
             try {
               const res = await axios.post("../backend/api/history.php", {
                 action: "clear",
@@ -136,12 +182,15 @@
               });
               if (res.data.code === 200) {
                 this.historyList = [];
-                alert("历史记录已清空");
+                showSuccess("历史记录已清空"); // 需在utils.js实现
+                modal.hide();
               } else {
                 showError(res.data.msg, "E001");
               }
             } catch (err) {
               showError("清空历史失败", "E002");
+            } finally {
+              this.clearLoading = false;
             }
           },
         },
